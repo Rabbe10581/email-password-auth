@@ -1,7 +1,10 @@
-import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
+import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, updateProfile } from 'firebase/auth';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import React, { useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
+import { Link } from 'react-router-dom';
 import app from '../firebase/firebase.init';
 
 const auth = getAuth(app);
@@ -16,10 +19,12 @@ const RegisterReactBootstrap = () => {
         setSuccess(false);
 
         const form = event.target;
+        const name = form.name.value;
         const email = form.email.value;
         const password = form.password.value;
-        console.log(email, password);
+        console.log(name, email, password);
 
+        //Validate password
         if (!/(?=.*[A-Z].*[A-Z])/.test(password)) {
             setPasswordError('please provide at least two uppercase')
             return;
@@ -34,12 +39,15 @@ const RegisterReactBootstrap = () => {
         }
         setPasswordError('');
 
+
         createUserWithEmailAndPassword(auth, email, password)
             .then(result => {
                 const user = result.user;
                 console.log(user);
                 setSuccess(true);
                 form.reset();
+                verifyEmail();
+                updateUserName(name);
             })
             .catch(error => {
                 console.error('error', error);
@@ -47,17 +55,46 @@ const RegisterReactBootstrap = () => {
             })
     }
 
+    const verifyEmail = () => {
+        sendEmailVerification(auth.currentUser)
+            .then(() => {
+                toast.info("Please check your mail address and verify it!!!", {
+                    position: "top-center",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    theme: "colored"
+                });
+            })
+    }
+
+    const updateUserName = (name) => {
+        updateProfile(auth.currentUser, {
+            displayName: name
+        })
+            .then(() => {
+                console.log('Display name updated');
+            })
+            .catch(error => console.log(error))
+    }
+
     return (
         <div className='w-50 mx-auto'>
             <h3 className='text-primary'>Please register!!!</h3>
             <Form onSubmit={handleRegister}>
+                <Form.Group className="mb-3" controlId="formBasicName">
+                    <Form.Label>Your Name</Form.Label>
+                    <Form.Control type="text" name='name' placeholder="Enter Name" required />
+                </Form.Group>
                 <Form.Group className="mb-3" controlId="formBasicEmail">
                     <Form.Label>Email address</Form.Label>
                     <Form.Control type="email" name='email' placeholder="Enter email" required />
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="formBasicPassword">
-                    <Form.Label>Password</Form.Label>
+                    <Form.Label>Your password</Form.Label>
                     <Form.Control type="password" name='password' placeholder="Password" required />
                 </Form.Group>
                 <p className='text-danger'>{passwordError}</p>
@@ -66,6 +103,8 @@ const RegisterReactBootstrap = () => {
                     Register
                 </Button>
             </Form>
+            <p><small>Already have an account? Please <Link to='/login'>Log in</Link ></small></p>
+            <ToastContainer></ToastContainer>
         </div>
     );
 };
